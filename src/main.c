@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <errno.h>
 #include "array.h"
@@ -7,16 +6,26 @@
 #include "lexer.h"
 #include "parser.h"
 
-typedef struct InterpretCtx {
-    int dummy;
-} InterpretCtx;
+typedef struct Ipreter {
+    Lexer* lexer;
+    Parser* parser;
+} Ipreter;
 
-InterpretCtx InterpretCtx_new() {
-    return (InterpretCtx) { .dummy = 0 };
+Ipreter Ipreter_new(Lexer* lexer, Parser* parser) {
+    return (Ipreter) {
+        .lexer = lexer,
+        .parser = parser,
+    };
 }
 
-void interpret(Parser* parser, InterpretCtx* interpret_ctx) {
+void IPreter_call_fn(Ipreter* ipreter, Fn fn) {
+    Stmt* stmt = StmtArray_get(ipreter->parser->stmts, fn.body)
+}
+
+void interpret(Lexer* lexer, Parser* parser) {
+    Ipreter ipreter = Ipreter_new(lexer, parser);
     Fn fn = Parser_get_fn(parser, "main");
+    Ipreter_call_fn(&ipreter, fn);
 }
 
 int main() {
@@ -27,11 +36,10 @@ int main() {
     Str_print(hello_str);
 
     Lexer lexer = Lexer_new(hello_str);
-    Parser parse_ctx = parse(&lexer);
+    Parser parser = parse(&lexer);
     Lexer_print(&lexer);
 
-    InterpretCtx interpret_ctx = InterpretCtx_new();
-    interpret(&parse_ctx, &interpret_ctx);
+    interpret(&lexer, &parser);
 
     InputFile_close(hello);
 

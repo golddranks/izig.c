@@ -78,6 +78,10 @@ Parser Parser_new() {
     };
 }
 
+
+void Parser_expr(Parser* parser, Lexer* lexer);
+void Parser_suffix_expr(Parser* parser, Lexer* lexer);
+
 ConstArrayIdx Parser_push_const(Parser* parser, Const c) {
     return ConstArray_push(&parser->consts, c);
 }
@@ -109,21 +113,51 @@ TypeArrayIdx Parser_type(Parser* parser, Lexer* lexer) {
     return TypeArray_push(&parser->types, Type_new(ident, error_union));
 }
 
-void Parser_path(Parser* parser, Lexer* lexer) {
-    Str ident = Lexer_ident(lexer);
-    while (Lexer_peek_token(lexer, TK_DOT)) {
-        Lexer_token(lexer, TK_DOT);
-        ident = Lexer_ident(lexer);
+void Parser_field_access(Parser* parser, Lexer* lexer) {
+    Lexer_token(lexer, TK_DOT);
+    Lexer_ident(lexer);
+    Parser_suffix_expr(parser, lexer);
+}
+
+void Parser_fn_call(Parser* parser, Lexer* lexer) {
+    Lexer_token(lexer, TK_LPAREN);
+    if (!Lexer_peek_token(lexer, TK_RPAREN)) {
+        do {
+            Parser_expr(parser, lexer);
+        } while (Lexer_maybe_token(lexer, TK_COMMA));
+    }
+    Lexer_token(lexer, TK_RPAREN);
+    Parser_suffix_expr(parser, lexer);
+}
+
+void Parser_suffix_expr(Parser* parser, Lexer* lexer) {
+    if (Lexer_peek_token(lexer, TK_DOT)) {
+        Parser_field_access(parser, lexer);
+    } else if (Lexer_peek_token(lexer, TK_LPAREN)) {
+        Parser_fn_call(parser, lexer);
     }
 }
 
-void Parser_expr(Parser* parser, Lexer* lexer) {
-    Parser_path(parser, lexer);
-    if (Lexer_peek_token(lexer, TK_LPAREN)) {
-        Lexer_token(lexer, TK_LPAREN);
-        Lexer_str(lexer);
-        Lexer_token(lexer, TK_RPAREN);
+void Parser_tuple(Parser* parser, Lexer* lexer) {
+    Lexer_token(lexer, TK_DOT);
+    Lexer_token(lexer, TK_LBRACE);
+    if (!Lexer_peek_token(lexer, TK_RBRACE)) {
+        do {
+            Parser_expr(parser, lexer);
+        } while (Lexer_maybe_token(lexer, TK_COMMA));
     }
+    Lexer_token(lexer, TK_RBRACE);
+}
+
+void Parser_expr(Parser* parser, Lexer* lexer) {
+    if (Lexer_peek_token(lexer, TK_DOT)) {
+        Parser_tuple(parser, lexer);
+    } else if (Lexer_peek_token(lexer, TK_DQUOTE)) {
+        Lexer_str(lexer);
+    } else {
+        Lexer_ident(lexer);
+    }
+    Parser_suffix_expr(parser, lexer);
 }
 
 void Parser_const(Parser* parser, Lexer* lexer) {
@@ -138,13 +172,16 @@ void Parser_const(Parser* parser, Lexer* lexer) {
 void Parser_try(Parser* parser, Lexer* lexer) {
     Lexer_token(lexer, TK_TRY);
     Parser_expr(parser, lexer);
+    Lexer_token(lexer, TK_EOS);
 }
 
 void Parser_stmt(Parser* parser, Lexer* lexer) {
     if (Lexer_peek_token(lexer, TK_CONST)) {
         Parser_const(parser, lexer);
+    } else if (Lexer_peek_token(lexer, TK_TRY)) {
+        Parser_try(parser, lexer);
     } else {
-        lex_error(lexer, "expected stmt", NULL_STR);
+        lex_error(lexer, "expected stmt", EMPTY_STR);
     }
 }
 
@@ -154,22 +191,27 @@ void Parser_body(Parser* parser, Lexer* lexer) {
     }
 }
 
+void Parser_fn_decl(Parser* parser, Lexer* lexer) {
+    Lexer_token(lexer, TK_FN);
+    Str ident = Lexer_ident(lexer);
+    Lexer_token(lexer, TK_LPAREN);
+    // TODO: params
+    Lexer_token(lexer, TK_RPAREN);
+    TypeArrayIdx return_type = Parser_type(parser, lexer);
+    Lexer_token(lexer, TK_LBRACE);
+    Parser_body(parser, lexer);
+    Lexer_token(lexer, TK_RBRACE);
+    Parser_push_fn(parser, ident, NULL_ArgArrayIdx, return_type);
+}
+
 void Parser_item(Parser* parser, Lexer* lexer) {
     Lexer_maybe_token(lexer, TK_PUB);
     if (Lexer_peek_token(lexer, TK_CONST)) {
         Parser_const(parser, lexer);
     } else if (Lexer_peek_token(lexer, TK_FN)) {
-        Lexer_token(lexer, TK_FN);
-        Str ident = Lexer_ident(lexer);
-        Lexer_token(lexer, TK_LPAREN);
-        Lexer_token(lexer, TK_RPAREN);
-        TypeArrayIdx return_type = Parser_type(parser, lexer);
-        Lexer_token(lexer, TK_LBRACE);
-        Parser_body(parser, lexer);
-        Lexer_token(lexer, TK_RBRACE);
-        Parser_push_fn(parser, ident, NULL_ArgArrayIdx, return_type);
+        Parser_fn_decl(parser, lexer);
     } else {
-        lex_error(lexer, "expected item", NULL_STR);
+        lex_error(lexer, "expected item", EMPTY_STR);
     }
 }
 

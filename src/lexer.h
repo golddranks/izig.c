@@ -21,6 +21,7 @@ typedef enum TKind {
     TK_RBRACE,
     TK_COMMA,
     TK_TRY,
+    TK_DQUOTE,
 } TKind;
 
 Str TKind_str(TKind kind) {
@@ -41,6 +42,7 @@ Str TKind_str(TKind kind) {
         "}",
         ",",
         "try",
+        "\"",
     }[kind];
     return Str_new(c_str);
 }
@@ -51,7 +53,7 @@ typedef union TokenData {
     Str str;
 } TokenData;
 
-const TokenData EMPTY = (TokenData) { {} };
+const TokenData EMPTY_TK_DATA = (TokenData) { {} };
 
 typedef struct Token {
     TKind kind;
@@ -103,8 +105,17 @@ void Lexer_print(Lexer* lexer) {
     printf("\n");
 }
 
-void report_error(Lexer* lexer, const char* msg, Str str, const char* file, int line) {
-    fprintf(stderr, "Error: %s; expected: %.*s, got: %c (at %s:%d)\n", msg, (int) str.len, str.start, lexer->source.start[0], file, line);
+void report_error(Lexer* lexer, const char* msg, Str expected, const char* file, int line) {
+    fprintf(
+        stderr,
+        "Error: %s; expected: %.*s, got: %c (at %s:%d)\n",
+        msg,
+        (int) expected.len,
+        expected.start,
+        lexer->source.start[0],
+        file,
+        line
+    );
     Lexer_print(lexer);
 }
 
@@ -138,7 +149,7 @@ void Lexer_token(Lexer* lexer, TKind tkind) {
     Lexer_ws(lexer);
     size_t i = Str_prefix_match(lexer->source, TKind_str(tkind));
     if (i != -1) {
-        TokenArray_push(&lexer->tokens, Token_new(tkind, EMPTY));
+        TokenArray_push(&lexer->tokens, Token_new(tkind, EMPTY_TK_DATA));
         Lexer_consume(lexer, i);
     } else {
         lex_error(lexer, "expected token", TKind_str(tkind));
@@ -154,7 +165,7 @@ bool Lexer_maybe_token(Lexer* lexer, TKind tkind) {
     Lexer_ws(lexer);
     size_t i = Str_prefix_match(lexer->source, TKind_str(tkind));
     if (i != -1) {
-        TokenArray_push(&lexer->tokens, Token_new(tkind, EMPTY));
+        TokenArray_push(&lexer->tokens, Token_new(tkind, EMPTY_TK_DATA));
         Lexer_consume(lexer, i);
         return true;
     } else {
@@ -179,22 +190,16 @@ Str Lexer_ident(Lexer* lexer) {
         Lexer_consume(lexer, i);
         return ident;
     } else {
-        lex_error(lexer, "expected ident", NULL_STR);
+        lex_error(lexer, "expected ident", EMPTY_STR);
     }
 }
 
 Str Lexer_str(Lexer* lexer) {
     Lexer_ws(lexer);
-    if (*lexer->source.start != '\"') {
-        lex_error(lexer, "expected \"", NULL_STR);
-    };
-    Lexer_consume(lexer, 1);
+    Lexer_token(lexer, TK_DQUOTE);
     Str str = Lexer_consume_until(lexer, '"');
     TokenArray_push(&lexer->tokens, Token_new(TK_STR, (TokenData) str));
-    if (*lexer->source.start != '\"') {
-        lex_error(lexer, "expected \"", NULL_STR);
-    }
-    Lexer_consume(lexer, 1);
+    Lexer_token(lexer, TK_DQUOTE);
     return str;
 }
 
