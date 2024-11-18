@@ -4,14 +4,15 @@ Work in progress.
 
 ## Progress:
 - 2024-11-13 Project started.
-- 2024-11-18 Hello world (test/hello.zip) works.
+- 2024-11-18 Hello world (test/hello.zig) works.
 
 ## Plans:
-- Continue adding test cases from examples and test snippets and make sure they work correctly.
+- Continue adding test cases and make them pass.
+- Continue learning Zig & C...
 - Bootstrap Zig compiler?
 
 ## Non-plans:
 - Type checking
 - Good error handling
-- Performance
+- Good performance
 - Full conformance
