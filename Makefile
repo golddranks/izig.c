@@ -16,10 +16,12 @@ clean:
 
 .PHONY: test
 
-TESTCASE = ./$(OUT) test/$1.zig | diff test/$1.stdout - && echo "$1: OK" || echo "$1: FAIL";
-
+TESTCASE = ./$(OUT) test/$1.zig | diff test/$1.stdout - && echo "$1: OK" >> test_results.out || echo "$1: FAIL" >> test_results.out;
 
 test: $(OUT)
+	echo "" > test_results.out
 	$(call TESTCASE,hello)
 	$(call TESTCASE,funcs_and_nums)
 	$(call TESTCASE,ziggzagg)
+	cat test_results.out
+	grep -q "FAIL" test_results.out && exit 1 || exit 0
