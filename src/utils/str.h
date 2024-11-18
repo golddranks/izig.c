@@ -23,7 +23,7 @@ typedef struct Str {
     size_t len;
 } Str;
 
-const Str EMPTY_STR = (Str) { .start = "", .len = 0 };
+const Str EMPTY_STR = { .start = "", .len = 0 };
 
 Str Str_new(const char* cstr) {
     return (Str) { .start = cstr, .len = strlen(cstr) };

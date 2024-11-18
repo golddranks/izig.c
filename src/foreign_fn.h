@@ -35,7 +35,7 @@ Val print(ValsSlice args) {
     return (Val) { .kind = VA_VOID };
 }
 
-const ForeignFn PRINT_FN = (ForeignFn) {
+const ForeignFn PRINT_FN = {
     .fn = print,
 };
 
@@ -58,7 +58,7 @@ Val writer(ValsSlice args) {
     return (Val) { .kind = VA_STRUCT, .data.structt = &WRITER_STRUCT };
 }
 
-const ForeignFn WRITER_FN = (ForeignFn) {
+const ForeignFn WRITER_FN = {
     .fn = writer,
 };
 
@@ -81,7 +81,7 @@ Val get_std_out(ValsSlice args) {
     return (Val) { .kind = VA_STRUCT, .data.structt = &FILE_STRUCT };
 }
 
-const ForeignFn GET_STD_OUT_FN = (ForeignFn) {
+const ForeignFn GET_STD_OUT_FN = {
     .fn = get_std_out,
 };
 
@@ -125,6 +125,6 @@ Val at_import(ValsSlice args) {
     }
 }
 
-const ForeignFn AT_IMPORT = (ForeignFn) {
+const ForeignFn AT_IMPORT = {
     .fn = at_import,
 };
