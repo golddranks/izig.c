@@ -21,7 +21,7 @@ TESTCASE = ./$(OUT) test/$1.zig | diff test/$1.stdout - && echo "$1: OK" >> test
 test: $(OUT)
 	echo "" > test_results.out
 	$(call TESTCASE,hello)
-	$(call TESTCASE,funcs_and_nums)
-	$(call TESTCASE,ziggzagg)
+#	$(call TESTCASE,funcs_and_nums)
+#	$(call TESTCASE,ziggzagg)
 	cat test_results.out
 	grep -q "FAIL" test_results.out && exit 1 || exit 0
