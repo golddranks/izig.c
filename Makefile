@@ -13,3 +13,13 @@ $(OUT): $(SRC) $(HEADERS)
 
 clean:
 	rm -f $(OUT)
+
+.PHONY: test
+
+TESTCASE = ./$(OUT) test/$1.zig | diff test/$1.stdout - && echo "$1: OK" || echo "$1: FAIL";
+
+
+test: $(OUT)
+	$(call TESTCASE,hello)
+	$(call TESTCASE,funcs_and_nums)
+	$(call TESTCASE,ziggzagg)

@@ -239,8 +239,7 @@ typedef struct Parser {
     NS local_ns;
 } Parser;
 
-Parser Parser_new() {
-    Parser parser;
+Parser Parser_new(void) {
     return (Parser) {
         .consts = Consts_new(1000),
         .fns = Fns_new(1000),
@@ -253,22 +252,22 @@ Parser Parser_new() {
         .global_ns = NS_new(1000),
         .local_ns = NS_new(1000),
     };
-    return parser;
 }
 
 void Parser_print(Parser* parser) {
-    printf("Consts: ");
+    fprintf(stderr, "Parser status:\n");
+    fprintf(stderr, "Consts: ");
     ConstsIter consts = Consts_iter(&parser->consts);
     while (ConstsIter_next(&consts)) {
-        printf("%.*s ", (int) consts.current->ident.len, consts.current->ident.start);
+        fprintf(stderr, "%.*s ", (int) consts.current->ident.len, consts.current->ident.start);
     }
-    printf("\n");
-    printf("Fns: ");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Fns: ");
     FnsIter fns = Fns_iter(&parser->fns);
     while (FnsIter_next(&fns)) {
-        printf("%.*s ", (int) fns.current->ident.len, fns.current->ident.start);
+        fprintf(stderr, "%.*s ", (int) fns.current->ident.len, fns.current->ident.start);
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 }
 
 Expr* Parser_expr(Parser* parser, Lexer* lexer);

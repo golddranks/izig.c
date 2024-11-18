@@ -45,7 +45,7 @@ Str Str_slice(Str s, size_t start, size_t end) {
 }
 
 void Str_print(Str s) {
-    fwrite(s.start, sizeof(unsigned char), s.len, stdout);
+    fwrite(s.start, sizeof(unsigned char), s.len, stderr);
 }
 
 bool Str_eq_cstr(Str s, const char* cstr) {

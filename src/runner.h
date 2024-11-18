@@ -14,13 +14,13 @@ typedef struct Runner {
 } Runner;
 
 void Runner_print(Runner* runner) {
-    printf("NS stack: ");
+    fprintf(stderr, "NS stack: ");
     NSsIter i = NSs_iter(&runner->ns_stack);
     while (NSsIter_next(&i)) {
         Str_print(i.current->ident);
-        printf(" ");
+        fprintf(stderr, " ");
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 }
 
 void __run_error(Runner* runner, const char* msg, Str str, const char* file, const char* func, int line) {
@@ -212,13 +212,17 @@ void Runner_init_builtins(Runner* runner) {
     NSs_push(&runner->ns_stack, binding);
 }
 
-void run(Lexer* lexer, Parser* parser) {
+void run(Lexer* lexer, Parser* parser, bool verbose) {
     Runner runner = Runner_new(lexer, parser);
-    printf("Initializing runtime.\n");
+    if (verbose) {
+        fprintf(stderr, "Initializing runtime.\n");
+    }
     Runner_init_builtins(&runner);
     Runner_init_globals(&runner);
-    Runner_print(&runner);
-    printf("Running main!\n\n");
+    if (verbose) {
+        Runner_print(&runner);
+        fprintf(stderr, "Running main!\n\n");
+    }
     Fn* fn = Parser_get_fn(parser, "main");
     assert(fn != NULL);
     Runner_call_fn(&runner, fn, EMPTY_ValsSlice);

@@ -96,15 +96,16 @@ Str Token_str(Token token) {
 }
 
 void Lexer_print(Lexer* lexer) {
-    printf("Currently consumed: %d\n", lexer->consumed);
-    printf("Tokens: ");
+    fprintf(stderr, "Lexer status:\n");
+    fprintf(stderr, "Currently consumed: %d\n", lexer->consumed);
+    fprintf(stderr, "Tokens: ");
     TokensIter i = Tokens_iter(&lexer->tokens);
     while (TokensIter_next(&i)) {
         Str token = Token_str(*i.current);
         Str_print(token);
-        printf(" ");
+        fprintf(stderr, " ");
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 }
 
 void __lex_error(Lexer* lexer, const char* msg, Str expected, const char* file, const char* func, int line) {
