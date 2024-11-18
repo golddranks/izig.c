@@ -1,17 +1,17 @@
 #ifndef IZIGC_LEXER_H
 #define IZIGC_LEXER_H
 
-#include "str.h"
-#include "array.h"
+#include "utils.h"
 
-typedef enum TKind {
+DefArray(Tokens, struct Token)
+
+typedef enum TkKind {
     TK_CONST,
     TK_IDENT,
     TK_ASSIGN,
     TK_DOT,
     TK_LPAREN,
     TK_RPAREN,
-    TK_AT,
     TK_STR,
     TK_PUB,
     TK_FN,
@@ -22,17 +22,19 @@ typedef enum TKind {
     TK_COMMA,
     TK_TRY,
     TK_DQUOTE,
-} TKind;
+    TK_COLON,
+    TK_LBRACKET,
+    TK_RBRACKET
+} TkKind;
 
-Str TKind_str(TKind kind) {
-    char* c_str = (char*[]){
+Str TkKind_str(TkKind kind) {
+    char* cstr = (char*[]){
         "const",
         "ident",
         "=",
         ".",
         "(",
         ")",
-        "@",
         "str",
         "pub",
         "fn",
@@ -43,83 +45,84 @@ Str TKind_str(TKind kind) {
         ",",
         "try",
         "\"",
+        ":",
+        "[",
+        "]",
     }[kind];
-    return Str_new(c_str);
+    return Str_new(cstr);
 }
 
-typedef union TokenData {
-    struct Empty {} empty;
+typedef union TkData {
+    void* empty;
     Str ident;
     Str str;
-} TokenData;
-
-const TokenData EMPTY_TK_DATA = (TokenData) { {} };
+} TkData;
 
 typedef struct Token {
-    TKind kind;
-    TokenData data;
+    TkKind kind;
+    TkData data;
 } Token;
 
-Token Token_new(TKind kind, TokenData data) {
+DefArrayMethods(Tokens, Token)
+
+Token Token_new(TkKind kind, TkData data) {
     return (Token) {
         .kind = kind,
         .data = data,
     };
 }
 
-DefArray(TokenArray, Token, 1000)
-
 typedef struct Lexer {
     int consumed;
     Str source;
-    TokenArray tokens;
-    int nesting;
+    Tokens tokens;
 } Lexer;
 
 Lexer Lexer_new(Str source) {
     return (Lexer) {
         .consumed = 0,
         .source = source,
-        .tokens = TokenArray_new(),
-        .nesting = 0,
+        .tokens = Tokens_new(1000),
     };
 }
 
-Str Token_str(Token token, Lexer* lexer) {
+Str Token_str(Token token) {
     if (token.kind == TK_IDENT) {
         return token.data.ident;
     } else if (token.kind == TK_STR) {
         return token.data.str;
     }
-    return TKind_str(token.kind);
+    return TkKind_str(token.kind);
 }
 
 void Lexer_print(Lexer* lexer) {
     printf("Currently consumed: %d\n", lexer->consumed);
-    printf("TokenArray: ");
-    for (int i = 0; i < lexer->tokens.len; i++) {
-        Str token = Token_str(*TokenArray_get(lexer->tokens, TokenArray_idx(i)), lexer);
+    printf("Tokens: ");
+    TokensIter i = Tokens_iter(&lexer->tokens);
+    while (TokensIter_next(&i)) {
+        Str token = Token_str(*i.current);
         Str_print(token);
         printf(" ");
     }
     printf("\n");
 }
 
-void report_error(Lexer* lexer, const char* msg, Str expected, const char* file, int line) {
+void __lex_error(Lexer* lexer, const char* msg, Str expected, const char* file, const char* func, int line) {
     fprintf(
         stderr,
-        "Error: %s; expected: %.*s, got: %c (at %s:%d)\n",
+        "Error: %s; expected: %.*s, got: %c (at %s:%s:%d)\n",
         msg,
         (int) expected.len,
         expected.start,
         lexer->source.start[0],
         file,
+        func,
         line
     );
     Lexer_print(lexer);
 }
 
-#define lex_error(lexer, msg, expected) report_error(lexer, msg, expected, __FILE__, __LINE__); exit(EXIT_FAILURE);
+#define lex_error(lexer, msg, expected) __lex_error(lexer, msg, expected, __FILE__, __func__, __LINE__); exit(EXIT_FAILURE);
 
 void Lexer_consume(Lexer* lexer, size_t n) {
     lexer->consumed += n;
@@ -145,62 +148,57 @@ Str Lexer_consume_until(Lexer* lexer, char c) {
     return consumed;
 }
 
-void Lexer_token(Lexer* lexer, TKind tkind) {
+bool Lexer_peek_token(Lexer* lexer, TkKind tkind) {
     Lexer_ws(lexer);
-    size_t i = Str_prefix_match(lexer->source, TKind_str(tkind));
-    if (i != -1) {
-        TokenArray_push(&lexer->tokens, Token_new(tkind, EMPTY_TK_DATA));
-        Lexer_consume(lexer, i);
-    } else {
-        lex_error(lexer, "expected token", TKind_str(tkind));
-    }
+    return Str_prefix_match(lexer->source, TkKind_str(tkind));
 }
 
-bool Lexer_peek_token(Lexer* lexer, TKind tkind) {
+bool Lexer_maybe_token(Lexer* lexer, TkKind tkind) {
     Lexer_ws(lexer);
-    return Str_prefix_match(lexer->source, TKind_str(tkind)) != -1;
-}
-
-bool Lexer_maybe_token(Lexer* lexer, TKind tkind) {
-    Lexer_ws(lexer);
-    size_t i = Str_prefix_match(lexer->source, TKind_str(tkind));
-    if (i != -1) {
-        TokenArray_push(&lexer->tokens, Token_new(tkind, EMPTY_TK_DATA));
-        Lexer_consume(lexer, i);
+    Str tkind_str = TkKind_str(tkind);
+    if (Str_prefix_match(lexer->source, tkind_str)) {
+        Tokens_push(&lexer->tokens, Token_new(tkind, (TkData) { .empty = NULL }));
+        Lexer_consume(lexer, tkind_str.len);
         return true;
     } else {
         return false;
     }
 }
 
+void Lexer_token(Lexer* lexer, TkKind tkind) {
+    if (!Lexer_maybe_token(lexer, tkind)) {
+        lex_error(lexer, "expected token", TkKind_str(tkind));
+    }
+}
+
 Str Lexer_ident(Lexer* lexer) {
     Lexer_ws(lexer);
-    size_t i = 0;
+    char c = lexer->source.start[0];
+    if (!is_ident_first(c)) {
+        lex_error(lexer, "expected ident", EMPTY_STR);
+    }
+    size_t i = 1;
     while (i < lexer->source.len) {
-        char c = lexer->source.start[i];
-        if ((i > 0 && !is_alphanum(c)) || (i == 0 && !is_alpha(c) && c != '@')) {
+        c = lexer->source.start[i];
+        if (!is_ident_next(c)) {
             break;
         }
         i++;
     }
-    if (i > 0) {
-        Str ident = lexer->source;
-        ident.len = i;
-        TokenArray_push(&lexer->tokens, Token_new(TK_IDENT, (TokenData) ident));
-        Lexer_consume(lexer, i);
-        return ident;
-    } else {
-        lex_error(lexer, "expected ident", EMPTY_STR);
-    }
+    Str ident = lexer->source;
+    ident.len = i;
+    Tokens_push(&lexer->tokens, Token_new(TK_IDENT, (TkData) { .ident = ident }));
+    Lexer_consume(lexer, i);
+    return ident;
 }
 
 Str Lexer_str(Lexer* lexer) {
     Lexer_ws(lexer);
     Lexer_token(lexer, TK_DQUOTE);
     Str str = Lexer_consume_until(lexer, '"');
-    TokenArray_push(&lexer->tokens, Token_new(TK_STR, (TokenData) str));
+    Tokens_push(&lexer->tokens, Token_new(TK_STR, (TkData) { .str = str }));
     Lexer_token(lexer, TK_DQUOTE);
     return str;
 }
 
-#endif // IZIGC_PARSER_H
+#endif // IZIGC_LEXER_H
