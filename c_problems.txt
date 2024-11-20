@@ -1,0 +1,64 @@
+C problems:
+
+silently default-zeroes structs
+	-> when adding fields, it's easy to forget initializing somewhere else, leading to bugs
+
+nullable pointers
+	-> worse with default-zeroes
+	-> impossible to read intent, when null is warranted and when not
+
+the include system is a hack
+	-> not seeing what gets imported, polluted global namespace
+	-> define/ifdef as a normal header handling mechanism...? really??
+
+enum is a lackluster
+	-> lack of exhaustive checking of variants leads to oopsies
+	-> lack of namespacing leads to ugly names
+
+switch is ugly and error-prone
+	-> break is required for each branch? really?
+	-> no exhaustive checking
+	-> no declarations in branches
+
+null-sentinel strings are an abomination
+	-> lack of safety
+	-> lack of performance when dealing with long strings
+	-> lack of slicing
+
+pointers as arrays
+	-> very unsafe with out-band buffer length
+	-> impossible to read intent from pointers
+	-> lack of nice, universal slice type
+
+lack of module/type-scoped namespaces/method calling
+	-> leads to verbose, ugly names and a polluted global namespace
+
+lack of tagged union
+	-> implementing that manually with enums and unions isn't fun and prone to mistakes
+
+macros are an ugly hack
+	-> lack of basic hygiene
+	-> lack of multiline declarations
+
+struct + typedef leads to awkward declarations
+	-> "struct T" with recursive types
+
+even simplest expressions in const initializers are forbidden
+	-> often hard to have "in correct state, statically from start" consts
+
+lack of privacy makes abstraction / protecting invariants impossible
+
+awkward, hard-to-grep, hard-to-parse declaration syntax
+	-> function and variable declarations don't have a keyword
+
+awkward but common C-ism: passing a callback and a data pointer
+	-> requires casting and void* gymnastics
+	-> heavy-handedly declaring a struct and function just for single-use callback
+
+awkward but common C-ism: manually creating V-tables
+	-> requires casting and void* gymnastics
+
+inconvinient to create common utility methods, such as print, cmp, eq, hash, clone
+
+no separation between "owning" and "borrowing" pointers
+	-> impossible to read intent
